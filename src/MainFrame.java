@@ -3,14 +3,17 @@ import java.util.List;
 import java.util.Scanner;
 import java.net.*;
 import javax.swing.DefaultListModel;
+import javax.swing.JFrame;
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
 import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.packet.PcapPacketHandler;
 import org.jnetpcap.protocol.network.Arp;
+import javax.swing.text.html.HTMLEditorKit;
 /*
  * MainFrame.java
  *
@@ -25,6 +28,7 @@ public class MainFrame extends javax.swing.JFrame {
     /** Creates new form MainFrame */
     public MainFrame() {
         initComponents();
+        initSniffer();
     }
 
     /** This method is called from within the constructor to
@@ -48,14 +52,20 @@ public class MainFrame extends javax.swing.JFrame {
         jPanel5 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         packageList = new javax.swing.JTable();
-        jLabel1 = new javax.swing.JLabel();
+        packagesLabel = new javax.swing.JLabel();
+        searchButton = new javax.swing.JButton();
+        searchField = new javax.swing.JTextField();
         jPanel4 = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
         packagePreview = new javax.swing.JTextArea();
         jLabel3 = new javax.swing.JLabel();
         statusLabel = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        headersView = new javax.swing.JEditorPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("java-netutils");
 
         jTabbedPane1.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
@@ -76,6 +86,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Network Scanner", jPanel2);
 
+        jSplitPane1.setDividerLocation(200);
         jSplitPane1.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
 
         interfaceLabel.setText("Choose an interface");
@@ -105,10 +116,10 @@ public class MainFrame extends javax.swing.JFrame {
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
+                .add(18, 18, 18)
                 .add(interfaceLabel)
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(jScrollPane2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 26, Short.MAX_VALUE))
+                .add(18, 18, 18)
+                .add(jScrollPane2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 146, Short.MAX_VALUE))
         );
 
         jSplitPane2.setLeftComponent(jPanel1);
@@ -143,25 +154,45 @@ public class MainFrame extends javax.swing.JFrame {
         });
         jScrollPane1.setViewportView(packageList);
 
-        jLabel1.setText("Received Packages");
+        packagesLabel.setText("Sniffed Packages (0)");
+
+        searchButton.setText("Filter");
+        searchButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                searchButtonActionPerformed(evt);
+            }
+        });
+
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                searchFieldKeyPressed(evt);
+            }
+        });
 
         org.jdesktop.layout.GroupLayout jPanel5Layout = new org.jdesktop.layout.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
             jPanel5Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(jScrollPane1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 612, Short.MAX_VALUE)
             .add(jPanel5Layout.createSequentialGroup()
                 .addContainerGap()
-                .add(jLabel1)
-                .addContainerGap(465, Short.MAX_VALUE))
-            .add(jScrollPane1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 612, Short.MAX_VALUE)
+                .add(packagesLabel)
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 127, Short.MAX_VALUE)
+                .add(searchField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 217, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(searchButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 94, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(jPanel5Layout.createSequentialGroup()
                 .add(12, 12, 12)
-                .add(jLabel1)
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(jScrollPane1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 26, Short.MAX_VALUE))
+                .add(jPanel5Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                    .add(packagesLabel)
+                    .add(searchField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 27, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                    .add(searchButton))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                .add(jScrollPane1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 146, Short.MAX_VALUE))
         );
 
         jSplitPane2.setRightComponent(jPanel5);
@@ -174,42 +205,60 @@ public class MainFrame extends javax.swing.JFrame {
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(jSplitPane2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 61, Short.MAX_VALUE)
+            .add(jSplitPane2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 199, Short.MAX_VALUE)
         );
 
         jSplitPane1.setLeftComponent(jPanel3);
 
         packagePreview.setColumns(20);
         packagePreview.setEditable(false);
+        packagePreview.setFont(new java.awt.Font("Ubuntu Mono", 0, 14));
         packagePreview.setRows(5);
         jScrollPane3.setViewportView(packagePreview);
 
-        jLabel3.setText("Package Preview");
+        jLabel3.setText("Package Contents");
 
         statusLabel.setFont(new java.awt.Font("Dialog", 0, 12));
         statusLabel.setText("Loading...");
+
+        jLabel1.setText("Headers / Details");
+
+        headersView.setContentType("text/html");
+        headersView.setFont(new java.awt.Font("Ubuntu Mono", 0, 14));
+        headersView.setForeground(new java.awt.Color(0, 0, 0));
+        jScrollPane4.setViewportView(headersView);
 
         org.jdesktop.layout.GroupLayout jPanel4Layout = new org.jdesktop.layout.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .add(jLabel3)
-                .addContainerGap(680, Short.MAX_VALUE))
-            .add(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .add(statusLabel)
-                .addContainerGap(739, Short.MAX_VALUE))
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, jScrollPane3, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 812, Short.MAX_VALUE)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .add(statusLabel))
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .add(jLabel3))
+                    .add(jScrollPane3, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 567, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .add(jLabel1)
+                        .addContainerGap(111, Short.MAX_VALUE))
+                    .add(jScrollPane4, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 233, Short.MAX_VALUE)))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .add(jLabel3)
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(jScrollPane3, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 294, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, jPanel4Layout.createSequentialGroup()
+                .add(18, 18, 18)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                    .add(jLabel3)
+                    .add(jLabel1))
+                .add(18, 18, 18)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jScrollPane4, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 138, Short.MAX_VALUE)
+                    .add(jScrollPane3, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 138, Short.MAX_VALUE))
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(statusLabel))
         );
@@ -235,9 +284,11 @@ public class MainFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
 private void jTabbedPane1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTabbedPane1FocusGained
+   
+}//GEN-LAST:event_jTabbedPane1FocusGained
+
+private void initSniffer(){
     alldevs = new ArrayList();
-
-
     // For any error msgs
     errbuf = new StringBuilder();
 
@@ -259,31 +310,95 @@ private void jTabbedPane1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST
                 : "No description available";
         DefaultListModel interfaceListModel = (DefaultListModel)interfaceList.getModel();
         interfaceListModel.addElement(device.getName()+" ["+description+"]");
-    }
-}//GEN-LAST:event_jTabbedPane1FocusGained
+    } 
+    
+    snifferWorker = new SnifferWorker(this);
+}
 
 private void interfaceListComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_interfaceListComponentShown
     statusLabel.setText("Working");
 }//GEN-LAST:event_interfaceListComponentShown
 
 private void interfaceListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_interfaceListValueChanged
-    try { snifferWorker.close(); } 
-    catch(Exception e){ System.out.println(e.getMessage()); };
-   
-    snifferWorker = new SnifferWorker(this);
-    
-    snifferWorker.execute(); 
+    if(interfaceSelected != interfaceList.getSelectedIndex()){
+        snifferWorker.cancel(true);
+        interfaceSelected = interfaceList.getSelectedIndex();
+        snifferWorker = new SnifferWorker(this);
+        snifferWorker.selectDevice(interfaceSelected);
+        snifferWorker.execute();
+    }
 }//GEN-LAST:event_interfaceListValueChanged
 
 private void packageListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_packageListMouseClicked
        
     int row = packageList.getSelectedRow();
     DefaultTableModel tableModel = (DefaultTableModel) packageList.getModel();
-    
-    String content = tableModel.getValueAt(row, 3).toString();
-            
+
+    String content = tableModel.getValueAt(row, 8).toString();
+    String headers = tableModel.getValueAt(row, 9).toString();
     packagePreview.setText(content);
+    headersView.setText(headers);
 }//GEN-LAST:event_packageListMouseClicked
+
+private void searchButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_searchButtonActionPerformed
+    search();
+}//GEN-LAST:event_searchButtonActionPerformed
+
+private void searchFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_searchFieldKeyPressed
+                                  
+    if(evt.getKeyCode() == 10) // ENTER
+        search();
+}//GEN-LAST:event_searchFieldKeyPressed
+
+private void search(){    
+    String text = searchField.getText();
+    if( "".equals(text)){ 
+        searchMode = false;
+        packageList.setModel(packages);
+    } else {
+        if(!searchMode){
+          packages = packageList.getModel();
+          searchMode = true;
+        }
+        String[] names = new String[]{
+            "N°", 
+            "Timestamp",
+            "Protocol Headers",
+            "Sender IP",
+            "Target IP",
+            "Sender MAC",
+            "Target MAC",
+            "Size", 
+           /* "Operation",
+            "ProtocolType",
+            "HardwareType",*/
+            "Content",
+            "Headers"
+        };
+        DefaultTableModel searchResults = new DefaultTableModel(
+            new Object [][]{}, 
+            names
+        );
+        System.out.print("SEARCH => '"+text+"' [");
+       
+        packageList.setModel(searchResults);
+        for(int i=0; i<packages.getRowCount(); i++){ 
+            boolean match = false;
+            String [] row = new String[10];
+            for(int j=0; j<packages.getColumnCount(); j++){
+                String cell = packages.getValueAt(i, j).toString();
+                match = match || cell.matches(".*"+text+".*");
+                row[j] = cell;
+            }
+            if(match){
+                //System.out.println("ROW: "+row.toString());
+                searchResults.addRow(row);
+            }
+            System.out.print(match ? "Y":"n");
+        }
+        System.out.println("]");
+    }
+}
 
     /**
      * @param args the command line arguments
@@ -317,20 +432,30 @@ private void packageListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {           
             public void run() {
-                new MainFrame().setVisible(true);
+                
+                MainFrame myFrame = new MainFrame();
+                myFrame.setVisible(true);
+                //myFrame.setExtendedState(myFrame.getExtendedState() | JFrame.MAXIMIZED_BOTH);
+                
             }
         });
     }
+    private int interfaceSelected = -1;
     private List alldevs;
+    private boolean searchMode = false;
     private StringBuilder errbuf;
     private SnifferWorker snifferWorker;
+    private TableModel packages;
     public javax.swing.JLabel getStatusLabel() { return statusLabel; }
     public javax.swing.JList getInterfaceList(){ return this.interfaceList; }
     public javax.swing.JTable getPackageList(){ return this.packageList; }
+    public javax.swing.JLabel getPackagesLabel(){ return this.packagesLabel; }
     public javax.swing.JTextArea getPackagePreview(){ return this.packagePreview; }
+    public javax.swing.JEditorPane getHeadersView(){ return this.headersView; }
     public List getAllDevs(){ return this.alldevs; }
     public StringBuilder getErrorBuf(){ return this.errbuf; }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JEditorPane headersView;
     private javax.swing.JLabel interfaceLabel;
     private javax.swing.JList interfaceList;
     private javax.swing.JLabel jLabel1;
@@ -343,11 +468,15 @@ private void packageListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JSplitPane jSplitPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable packageList;
     private javax.swing.JTextArea packagePreview;
+    private javax.swing.JLabel packagesLabel;
+    private javax.swing.JButton searchButton;
+    private javax.swing.JTextField searchField;
     private javax.swing.JLabel statusLabel;
     // End of variables declaration//GEN-END:variables
 }
